@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Portfolio SPA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="header">
+        <h1 class="site-name">Moje Portfolio</h1>
+        <ul class="Header-links-ul">
+            <li class="header-link" id="home-link">Strona główna</li>
+            <li class="header-link" id="gallery-link">Galeria</li>
+            <li class="header-link" id="contact-link">Kontakt</li>
+        </ul>
+        <button id="theme-toggle">Zmień motyw</button>
+    </header>
+    
+    <main id="content">
+        <!-- Tutaj będzie dynamicznie wstawiana treść strony -->
+        <div class="loading" id="page-loading">Ładowanie...</div>
+    </main>
+    
+    <footer>
+        <p>© 2025 Moja strona</p>
+    </footer>
+    
+    <script src="js/router.js"></script>
+    <script src="js/gallery.js"></script>
+</body>
+</html>
