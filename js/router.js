@@ -44,9 +44,12 @@ const pageTemplates = {
             
             <label for="content">Wiadomość:</label>
             <textarea id="content" name="content" required></textarea>
+
+            <div class="g-recaptcha" data-sitekey="6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"></div>
             
             <button type="submit">Wyślij wiadomość</button>
         </form>
+        <script src="https://www.google.com/recaptcha/api.js" async defer></script>
     `
 };
 
@@ -120,10 +123,43 @@ function initPageSpecificFunctions(pageKey) {
 function initContact() {
     const form = document.getElementById('contact-form');
     if (form) {
+        // Make sure reCAPTCHA is loaded
+        if (typeof grecaptcha === 'undefined') {
+            // If grecaptcha is not defined, load it
+            const script = document.createElement('script');
+            script.src = 'https://www.google.com/recaptcha/api.js';
+            script.async = true;
+            script.defer = true;
+            document.head.appendChild(script);
+            
+            // Wait for script to load
+            script.onload = function() {
+                console.log('reCAPTCHA script loaded');
+            };
+        }
+
         form.addEventListener('submit', (event) => {
             event.preventDefault();
-            alert('Formularz został wysłany!');
-            form.reset();
+            
+            // Check if grecaptcha is defined before trying to use it
+            if (typeof grecaptcha !== 'undefined' && grecaptcha.getResponse) {
+                const recaptchaResponse = grecaptcha.getResponse();
+                
+                if (!recaptchaResponse) {
+                    alert('Proszę potwierdzić, że nie jesteś robotem.');
+                    return;
+                }
+                
+                // If reCAPTCHA verification passed, continue with form submission
+                alert('Formularz został wysłany!');
+                form.reset();
+                
+                // Reset the reCAPTCHA after form submission
+                grecaptcha.reset();
+            } else {
+                console.error('reCAPTCHA not loaded');
+                alert('Nie można zweryfikować reCAPTCHA. Spróbuj ponownie później.');
+            }
         });
     }
 }
@@ -196,3 +232,43 @@ function init() {
 
 // Uruchomienie inicjalizacji po załadowaniu dokumentu
 document.addEventListener('DOMContentLoaded', init);
+
+
+
+
+// Mobile menu functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const mobileMenu = document.getElementById('mobile-menu');
+    const navWrapper = document.querySelector('.nav-wrapper');
+    const menuLinks = document.querySelectorAll('.header-link');
+    
+    if (mobileMenu) {
+        mobileMenu.addEventListener('click', function() {
+            mobileMenu.classList.toggle('active');
+            navWrapper.classList.toggle('active');
+            document.body.classList.toggle('menu-open');
+        });
+    }
+    
+    // Close menu when clicking a link
+    menuLinks.forEach(link => {
+        link.addEventListener('click', function() {
+            mobileMenu.classList.remove('active');
+            navWrapper.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        });
+    });
+    
+    // Close menu when clicking outside
+    document.addEventListener('click', function(event) {
+        if (navWrapper.classList.contains('active') && 
+            !navWrapper.contains(event.target) && 
+            event.target !== mobileMenu &&
+            !mobileMenu.contains(event.target)) {
+            
+            mobileMenu.classList.remove('active');
+            navWrapper.classList.remove('active');
+            document.body.classList.remove('menu-open');
+        }
+    });
+});

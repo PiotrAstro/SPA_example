@@ -1,11 +1,13 @@
 // Zmienna przechowująca aktualną stronę galerii
 let currentPage = 1;
 // Ilość zdjęć ładowanych w jednym żądaniu
-const photosPerPage = 4;
+const photosPerPage = 6;
 // Flaga informująca, czy wszystkie zdjęcia zostały już załadowane
 let allPhotosLoaded = false;
 // Flaga informująca, czy aktualnie trwa ładowanie zdjęć
 let isLoading = false;
+// Cache dla URL-i BLOB-ów
+const blobCache = new Set();
 
 const allImages = [
     { src: 'images/gallery/1.jpg', title: 'Colombia - Bogota' },
@@ -24,7 +26,6 @@ const allImages = [
     { src: 'images/gallery/14.JPG', title: 'Colombia - Valle de Cocora' },
     { src: 'images/gallery/15.jpg', title: 'Colombia - Salento' },
 ];
-
 
 // Główna funkcja inicjalizacji galerii
 function initGallery() {
@@ -54,6 +55,28 @@ function initGallery() {
     setupInfiniteScroll();
 }
 
+// Funkcja do asynchronicznego ładowania obrazu jako Blob
+async function loadImageAsBlob(imageUrl) {
+    try {
+        const response = await fetch(imageUrl);
+        if (!response.ok) {
+            throw new Error(`Nie udało się pobrać obrazu: ${imageUrl}`);
+        }
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        // Dodaj URL do cache
+        blobCache.add(blobUrl);
+        
+        return blobUrl;
+    } catch (error) {
+        console.error(`Błąd przy ładowaniu obrazu ${imageUrl}:`, error);
+        // Zwróć oryginalny URL w przypadku błędu
+        return imageUrl;
+    }
+}
+
 // Funkcja do asynchronicznego ładowania zdjęć
 async function loadGalleryImages() {
     // Jeśli już wszystkie zdjęcia są załadowane lub trwa ładowanie, przerwij
@@ -69,10 +92,7 @@ async function loadGalleryImages() {
     }
     
     try {
-        // Symulujemy opóźnienie asynchronicznego ładowania
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Symulujemy pobieranie listy plików z folderu
+        // Pobieramy listę obrazów dla bieżącej strony
         const images = getGalleryImages(currentPage, photosPerPage);
         
         if (images.length === 0) {
@@ -87,16 +107,24 @@ async function loadGalleryImages() {
             return;
         }
         
+        // Ładujemy obrazy asynchronicznie jako Bloby
+        const loadedImages = await Promise.all(
+            images.map(async (image) => {
+                const blobUrl = await loadImageAsBlob(image.src);
+                return { ...image, blobSrc: blobUrl };
+            })
+        );
+        
         // Dodajemy zdjęcia do galerii
         const galleryContainer = document.querySelector('.gallery-container');
         
         if (galleryContainer) {
-            images.forEach(image => {
+            loadedImages.forEach(image => {
                 const galleryItem = document.createElement('div');
                 galleryItem.className = 'gallery-item';
                 
                 const img = document.createElement('img');
-                img.src = image.src;
+                img.src = image.blobSrc; // Używamy URL-a Bloba
                 img.alt = image.title;
                 img.loading = 'lazy'; // Natywne leniwe ładowanie obrazków
                 
@@ -110,7 +138,7 @@ async function loadGalleryImages() {
                 
                 // Dodanie nasłuchiwacza zdarzeń do powiększania obrazka
                 galleryItem.addEventListener('click', () => {
-                    showLightbox(image.src, image.title);
+                    showLightbox(image.blobSrc, image.title);
                 });
             });
         }
@@ -240,6 +268,15 @@ function showLightbox(src, alt) {
         document.removeEventListener('keydown', handleEscapeKey);
     }
 }
+
+// Czyszczenie URL-i BLOB przy zamykaniu strony
+window.addEventListener('beforeunload', () => {
+    // Zwalniamy wszystkie URL-e dla BLOB-ów w cache
+    blobCache.forEach(url => {
+        URL.revokeObjectURL(url);
+    });
+    blobCache.clear();
+});
 
 // Inicjalizacja galerii przy załadowaniu dokumentu
 document.addEventListener('DOMContentLoaded', function() {
